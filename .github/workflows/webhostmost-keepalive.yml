@@ -3,10 +3,14 @@ name: Run webhostmost keepalive Script
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 9 5,25 * *"  # 每月1号运行一次
+    - cron: "0 9 5,25 * *"  # 每月5号和25号运行
   push:
     branches:
       - main
+
+# 添加权限设置，确保 Action 有权更新仓库状态
+permissions:
+  contents: write
 
 jobs:
   login:
@@ -14,24 +18,23 @@ jobs:
 
     steps:
       - name: Checkout 仓库代码
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3 # 建议更新到 v3 或 v4
 
       - name: 安装 Playwright 所需依赖
         run: |
           npx playwright install-deps
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4 # 建议更新到 v4
         with:
           python-version: '3.10'
 
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install playwright aiofiles requests
-          pip install requests beautifulsoup4
+          pip install playwright aiofiles requests beautifulsoup4
 
-      - name: Install Playwright Browsers  # 安装浏览器
+      - name: Install Playwright Browsers
         run: |
           playwright install
 
@@ -42,3 +45,9 @@ jobs:
           WEBHOST: ${{ secrets.WEBHOST }}
         run: |
           python keepalive.py
+
+      # ======= 新增：防止工作流禁用的续命步骤 =======
+      - name: Keepalive Workflow
+        uses: gautamkrishnar/keepalive-workflow@v1
+        with:
+          use_api: true # 通过 GitHub API 模拟活动，无需产生多余的 commit
